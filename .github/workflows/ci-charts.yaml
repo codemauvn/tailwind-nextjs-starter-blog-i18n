@@ -70,7 +70,7 @@ jobs:
       - id: show-error
         name: Show error
         if: ${{ steps.get-chart.outputs.result != 'ok' }}
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             let message='${{ steps.get-chart.outputs.error }}';
