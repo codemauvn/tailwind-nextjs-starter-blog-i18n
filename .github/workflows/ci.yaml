@@ -79,10 +79,32 @@ jobs:
           cache-to: type=gha,mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=oci,dest=frontend-image.tar
-      
+          outputs: type=oci,dest=frontend-image.tar      
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: frontend-image
           path: frontend-image.tar
+  ci-trivy:
+    name: Build Docker image
+    needs: ci-docker
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download frontend image to scan
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-image
+      - name: Run Trivy vulnerability scanner in tarball mode
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          input: /github/workspace/frontend-image.tar
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: Trivy
