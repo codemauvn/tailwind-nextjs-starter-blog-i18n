@@ -54,7 +54,7 @@ jobs:
       with:
         projectBaseDir: .
         args: >
-          -Dsonar.projectKey=${{ github.repository }}
+          -Dsonar.projectKey=tailwind-nextjs-starter-blog-i18n
           -Dsonar.organization=${{ github.repository_owner }}
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_CLOUD_TOKEN }}
