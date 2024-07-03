@@ -96,17 +96,18 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-image
+      - run: ls
       - name: Run Trivy vulnerability scanner in tarball mode
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          input: /github/workspace/frontend-image.tar
-          ignore-unfixed: true
+          input: frontend-image.tar
+          # ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results.sarif'
-          category: Trivy
+          # format: 'sarif'
+          # output: 'trivy-results.sarif'
+      # - name: Upload Trivy scan results to GitHub Security tab
+      #   uses: github/codeql-action/upload-sarif@v3
+      #   if: always()
+      #   with:
+      #     sarif_file: 'trivy-results.sarif'
+      #     category: Trivy
