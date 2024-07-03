@@ -31,6 +31,9 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --immutable
+      
+      - name: Lint
+        run: yarn lint
 
       - name: Build
         run: yarn build
@@ -53,7 +56,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            codemauvn/nextjs-app
+            ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
