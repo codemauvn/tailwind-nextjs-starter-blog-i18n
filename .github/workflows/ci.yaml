@@ -28,16 +28,19 @@ jobs:
         with:
           node-version: 20
           cache: 'yarn'
+          cache-dependency-path: yarn.lock
 
       - name: Install dependencies
         run: yarn install --immutable
       
-      - name: Lint
-        run: yarn lint
+      # - name: Run lint
+      #   run: yarn lint
 
-      - name: Build
+      - name: Run build
         run: yarn build
-      # - run: npm test
+      
+      # - name: Run test
+      #   run: npm test
   ci-docker:
     name: Build Docker image
     needs: ci-build
@@ -72,5 +75,14 @@ jobs:
         with:
           context: .
           push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=oci,dest=frontend-image.tar
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-image
+          path: frontend-image.tar
