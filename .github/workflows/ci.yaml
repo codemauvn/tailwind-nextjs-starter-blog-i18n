@@ -86,10 +86,12 @@ jobs:
           name: frontend-image
           path: frontend-image.tar
   ci-trivy:
-    name: Build Docker image
+    name: Trivy scan docker image
     needs: ci-docker
     runs-on: ubuntu-22.04
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Download frontend image to scan
         uses: actions/download-artifact@v4
         with:
