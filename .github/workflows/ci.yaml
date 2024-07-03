@@ -79,7 +79,8 @@ jobs:
           cache-to: type=gha,mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=oci,dest=frontend-image.tar      
+          outputs: type=docker,dest=frontend-image.tar
+          load: true
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
