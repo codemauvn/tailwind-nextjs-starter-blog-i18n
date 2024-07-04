@@ -50,12 +50,13 @@ jobs:
         # Disabling shallow clones is recommended for improving the relevancy of reporting
         fetch-depth: 0
     - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@v2.3.0
+      uses: sonarsource/sonarcloud-github-action@v2.3.0
       with:
         projectBaseDir: .
         args: >
           -Dsonar.projectKey=tailwind-nextjs-starter-blog-i18n
           -Dsonar.organization=${{ github.repository_owner }}
+          -Dsonar.verbose=true
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_CLOUD_TOKEN }}
         SONAR_HOST_URL: https://sonarcloud.io
