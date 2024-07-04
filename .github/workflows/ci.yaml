@@ -61,6 +61,46 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_CLOUD_TOKEN }}
         SONAR_HOST_URL: https://sonarcloud.io
   
+  gitleaks:
+    name: Run secrets scan
+    runs-on: ubuntu-22.04
+    needs: ci-build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        id: gitleaks
+        uses: DariuszPorowski/github-action-gitleaks@v2
+        with:
+          fail: false
+
+      - name: Post PR comment
+        uses: actions/github-script@v6
+        if: ${{ steps.gitleaks.outputs.exitcode == 1 && github.event_name == 'pull_request' }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const { GITLEAKS_RESULT, GITLEAKS_OUTPUT } = process.env
+            const output = `### ${GITLEAKS_RESULT}
+
+            <details><summary>Log output</summary>
+
+            ${GITLEAKS_OUTPUT}
+
+            </details>
+            `
+            github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body: output
+            })
+        env:
+          GITLEAKS_RESULT: ${{ steps.gitleaks.outputs.result }}
+          GITLEAKS_OUTPUT: ${{ steps.gitleaks.outputs.output }}
+  
   ci-docker:
     name: Build Docker image
     needs: ci-build
