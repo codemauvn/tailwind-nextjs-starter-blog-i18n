@@ -17,7 +17,6 @@ jobs:
   ci-build:
     name: Build and test
     runs-on: ubuntu-22.04
-
     # steps to perform in job
     steps:
       - name: Checkout code
@@ -28,18 +27,84 @@ jobs:
         with:
           node-version: 20
           cache: 'yarn'
+          cache-dependency-path: yarn.lock
 
       - name: Install dependencies
         run: yarn install --immutable
+      
+      # - name: Run lint
+      #   run: yarn lint
 
-      - name: Build
+      - name: Run build
         run: yarn build
-      # - run: npm test
+      
+      # - name: Run test
+      #   run: npm test
+  sonarqube:
+    name: Run SonarQube scan
+    runs-on: ubuntu-22.04
+    needs: ci-build
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        # Disabling shallow clones is recommended for improving the relevancy of reporting
+        fetch-depth: 0
+    - name: SonarQube Scan
+      uses: sonarsource/sonarcloud-github-action@v2.3.0
+      with:
+        projectBaseDir: .
+        args: >
+          -Dsonar.projectKey=tailwind-nextjs-starter-blog-i18n
+          -Dsonar.organization=${{ github.repository_owner }}
+          -Dsonar.verbose=true
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_CLOUD_TOKEN }}
+        SONAR_HOST_URL: https://sonarcloud.io
+  
+  gitleaks:
+    name: Run secrets scan
+    runs-on: ubuntu-22.04
+    needs: ci-build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        id: gitleaks
+        uses: DariuszPorowski/github-action-gitleaks@v2
+        with:
+          fail: false
+
+      - name: Post PR comment
+        uses: actions/github-script@v6
+        if: ${{ steps.gitleaks.outputs.exitcode == 1 && github.event_name == 'pull_request' }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const { GITLEAKS_RESULT, GITLEAKS_OUTPUT } = process.env
+            const output = `### ${GITLEAKS_RESULT}
+
+            <details><summary>Log output</summary>
+
+            ${GITLEAKS_OUTPUT}
+
+            </details>
+            `
+            github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body: output
+            })
+        env:
+          GITLEAKS_RESULT: ${{ steps.gitleaks.outputs.result }}
+          GITLEAKS_OUTPUT: ${{ steps.gitleaks.outputs.output }}
+  
   ci-docker:
     name: Build Docker image
     needs: ci-build
     runs-on: ubuntu-22.04
-
     # steps to perform in job
     steps:
       - name: Checkout code
@@ -53,7 +118,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            codemauvn/nextjs-app
+            ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -69,5 +134,39 @@ jobs:
         with:
           context: .
           push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=docker,dest=frontend-image.tar
+          # load: true
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-image
+          path: frontend-image.tar
+  ci-trivy:
+    name: Trivy scan docker image
+    needs: ci-docker
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Download frontend image to scan
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-image
+      - name: Run Trivy vulnerability scanner in tarball mode
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          input: frontend-image.tar
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: Trivy
