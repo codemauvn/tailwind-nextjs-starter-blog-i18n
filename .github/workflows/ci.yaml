@@ -50,7 +50,7 @@ jobs:
         # Disabling shallow clones is recommended for improving the relevancy of reporting
         fetch-depth: 0
     - name: SonarQube Scan
-      uses: sonarsource/sonarcloud-github-action@v2.3.0
+      uses: sonarsource/sonarcloud-github-action@v3.0.0
       with:
         projectBaseDir: .
         args: >
